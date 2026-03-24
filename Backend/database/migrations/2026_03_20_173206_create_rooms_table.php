@@ -18,6 +18,8 @@ return new class extends Migration
             $table->unsignedBigInteger('room_type_id')->constrained();
             $table->foreign('room_type_id')->references('id')->on('room_types');
 
+            $table->string('description');
+
             $table->decimal('price', 10, 2);
 
             $table->enum('status', ['disponible', 'ocupada', 'mantenimiento'])
