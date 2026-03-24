@@ -17,6 +17,7 @@ return new class extends Migration
             $table->unsignedBigInteger('reservation_id')->constrained();
             $table->foreign('reservation_id')->references('id')->on('reservations');
 
+            // Agrega el campo de monto, con 10 números enteros máximos y 2 decimales
             $table->decimal('amount', 10, 2);
 
             $table->enum('method', ['efectivo', 'tarjeta', 'transferencia'])

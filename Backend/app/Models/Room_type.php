@@ -2,10 +2,15 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Room;
 
-class Room_type extends Model
+class RoomType extends Model
 {
-    use HasFactory;
+    protected $fillable = ['name', 'description'];
+
+    public function rooms()
+    {
+        return $this->hasMany(Room::class, 'room_type_id');
+    }
 }
