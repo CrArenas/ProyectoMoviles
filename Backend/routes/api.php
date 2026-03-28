@@ -2,8 +2,6 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\ExampleController;
+use App\Http\Controllers\RoleController;
 
-    Route::get('/examples', [ExampleController::class, 'index']);
-    Route::post('/examples', [ExampleController::class, 'store']);
-    Route::get('/examples/{id}', [ExampleController::class, 'show']);
+Route::apiResource('/roles', RoleController::class);
