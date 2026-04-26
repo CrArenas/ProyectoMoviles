@@ -4,42 +4,71 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Role;
+use Illuminate\Support\Facades\DB;
 
 class RoleController extends Controller
 {
 
     public function index()
     {
-      $roles = Role::all();
-      return response()->json($roles);
+        $role = Role::paginate(10);
+        return response()->json($role, 201);
     }
 
     public function store(Request $request)
     {
-        $rol = new Role();
-        $rol->name = $request->name;
-        $rol->save();
-        return response()->json($rol);
+        try {
+            DB::beginTransaction();
+            $role = Role::create($request->all());
+            DB::commit();
+        } 
+        catch (\Exception $e) {
+            DB::rollback();
+            return response()->json(['error' => 'Error al crear el rol'], 500);
+        }
+        return response()->json($role, 201);
     }
 
-    public function show(string $id)
+    public function show(Role $role)
     {
-        $rol = Role::find($id);
-        return response()->json($rol);
+        try {
+            DB::beginTransaction();
+            $role = Role::findOrFail($role->id);
+            DB::commit();
+        } 
+        catch (\Exception $e) {
+            DB::rollback();
+            return response()->json(['error' => 'Error al retornar el rol'], 500);
+        }
+        return response()->json($role, 201);
     }
 
-    public function update(Request $request, string $id)
+    public function update(Request $request, Role $role)
     {
-        $rol = Role::find($id);
-        $rol->name = $request->name;
-        $rol->save();
-        return response()->json($rol);
+        try {
+            DB::beginTransaction();
+            $role->update($request->all());
+            DB::commit();
+        } 
+        catch (\Exception $e) {
+            DB::rollback();
+            return response()->json(['error' => 'Error al actualizar el rol'], 500);
+        }
+        return response()->json($role, 201);
     }
 
-    public function destroy(string $id)
+    public function destroy(Role $role)
     {
-        $rol = Role::find($id);
-        $rol->delete();
-        return response()->json($rol);
+        try {
+            DB::beginTransaction();
+            $role = Role::findOrFail($role->id);
+            $role->delete();
+            DB::commit();
+        } 
+        catch (\Exception $e) {
+            DB::rollback();
+            return response()->json(['error' => 'Error al eliminar el rol'], 500);
+        }
+        return response()->json($role, 201);
     }
 }
