@@ -16,7 +16,7 @@ class Role extends Model implements Auditable
 
     use HasApiTokens, HasFactory, Notifiable, SoftDeletes, AuditableTrait;
 
-    protected $fillable = ['name'];
+    protected $fillable = ['name', 'label'];
 
     public function users()
     {
