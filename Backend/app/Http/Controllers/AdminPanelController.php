@@ -65,14 +65,47 @@ class AdminPanelController extends Controller
 
     public function dashboard()
     {
+        $totalRooms = Room::count();
+
+        $availableRooms = Room::where('status', 'Disponible')
+            ->count();
+
+        $reservedRooms = Reservation::whereIn('status', [
+                'Activa',
+                'Pendiente de pago'
+            ])
+            ->count();
+
+        $monthlyRevenue = Payment::whereMonth('date', now()->month)
+            ->whereYear('date', now()->year)
+            ->sum('amount');
+
+        $reservationStats = [];
+
+        for ($i = 9; $i >= 0; $i--) {
+
+            $date = now()->subDays($i);
+
+            $count = Reservation::whereDate('created_at', $date)
+                ->count();
+
+            $reservationStats[] = [
+                'day' => $date->format('d'),
+                'count' => $count,
+            ];
+        }
+
         return view('admin.dashboard', [
-            'counts' => [
-                'roles' => Role::count(),
-                'room_types' => RoomType::count(),
-                'rooms' => Room::count(),
-                'users' => User::count(),
-                'payments' => Payment::count(),
+
+            'stats' => [
+                'total_rooms' => $totalRooms,
+                'available_rooms' => $availableRooms,
+                'reserved_rooms' => $reservedRooms,
+                'monthly_revenue' => $monthlyRevenue,
             ],
+
+            'reservationStats' => $reservationStats,
+
             'resources' => $this->adminResources(),
         ]);
     }
