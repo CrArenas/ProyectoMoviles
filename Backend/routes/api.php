@@ -19,6 +19,7 @@ Route::post('register', [AuthController::class, 'register']);
 Route::middleware('auth:api')->group(function () {
     Route::get('me', [AuthController::class, 'me']);
     Route::post('logout', [AuthController::class, 'logout']);
+    Route::get('rooms', [RoomController::class, 'index']);
     Route::apiResource('companions', CompanionController::class);
     Route::apiResource('reservations', ReservationController::class);
     Route::post('payments', [PaymentController::class, 'store']);

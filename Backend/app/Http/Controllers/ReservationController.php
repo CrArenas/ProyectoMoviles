@@ -10,6 +10,48 @@ use Carbon\Carbon;
 
 class ReservationController extends Controller
 {
+    private function normalizeStatus(?string $status): string
+    {
+        return strtolower(trim((string) $status));
+    }
+
+    private function hasOverlappingReservation(int $roomId, string $checkIn, string $checkOut, ?int $ignoreReservationId = null): bool
+    {
+        return Reservation::query()
+            ->where('room_id', $roomId)
+            ->when($ignoreReservationId, function ($query) use ($ignoreReservationId) {
+                $query->where('id', '!=', $ignoreReservationId);
+            })
+            ->where(function ($query) use ($checkIn, $checkOut) {
+                $query->whereBetween('check_in', [$checkIn, $checkOut])
+                    ->orWhereBetween('check_out', [$checkIn, $checkOut])
+                    ->orWhere(function ($innerQuery) use ($checkIn, $checkOut) {
+                        $innerQuery->where('check_in', '<=', $checkIn)
+                            ->where('check_out', '>=', $checkOut);
+                    });
+            })
+            ->exists();
+    }
+
+    private function hasOverlappingActiveReservationForUser(int $userId, string $checkIn, string $checkOut, ?int $ignoreReservationId = null): bool
+    {
+        return Reservation::query()
+            ->where('user_id', $userId)
+            ->when($ignoreReservationId, function ($query) use ($ignoreReservationId) {
+                $query->where('id', '!=', $ignoreReservationId);
+            })
+            ->whereRaw('LOWER(status) IN (?, ?)', ['activa', 'pendiente de pago'])
+            ->where(function ($query) use ($checkIn, $checkOut) {
+                $query->whereBetween('check_in', [$checkIn, $checkOut])
+                    ->orWhereBetween('check_out', [$checkIn, $checkOut])
+                    ->orWhere(function ($innerQuery) use ($checkIn, $checkOut) {
+                        $innerQuery->where('check_in', '<=', $checkIn)
+                            ->where('check_out', '>=', $checkOut);
+                    });
+            })
+            ->exists();
+    }
+
     public function index()
     {
         $reservation = Reservation::with(['room.roomType', 'companions', 'payments'])
@@ -26,7 +68,7 @@ class ReservationController extends Controller
             'room_id' => ['required', 'integer', 'exists:rooms,id'],
             'check_in' => ['required', 'date'],
             'check_out' => ['required', 'date', 'after:check_in'],
-            'status' => ['sometimes', 'in:activa,finalizada,cancelada'],
+            'status' => ['sometimes', 'in:Activa,Pendiente de pago,Finalizada,Cancelada,activa,finalizada,cancelada'],
         ]);
 
         $room = Room::findOrFail($validated['room_id']);
@@ -35,10 +77,20 @@ class ReservationController extends Controller
             return response()->json(['error' => 'La habitación no está disponible'], 422);
         }
 
+        if ($this->hasOverlappingReservation($validated['room_id'], $validated['check_in'], $validated['check_out'])) {
+            return response()->json(['error' => 'La habitación ya tiene una reserva en ese rango de fechas'], 422);
+        }
+
+        if ($this->hasOverlappingActiveReservationForUser(auth('api')->id(), $validated['check_in'], $validated['check_out'])) {
+            return response()->json(['error' => 'Ya tienes una reserva activa que se cruza con ese rango de fechas'], 422);
+        }
+
         $nights = Carbon::parse($validated['check_in'])->diffInDays(Carbon::parse($validated['check_out']));
         $total = $room->price * $nights;
 
         try {
+            $status = $validated['status'] ?? 'Activa';
+
             DB::beginTransaction();
             $reservation = Reservation::create([
                 'user_id' => auth('api')->id(),
@@ -46,11 +98,13 @@ class ReservationController extends Controller
                 'check_in' => $validated['check_in'],
                 'check_out' => $validated['check_out'],
                 'total' => $total,
-                'status' => $validated['status'] ?? 'activa',
+                'status' => $status,
             ]);
 
-            if ($reservation->status === 'activa') {
+            if (in_array($this->normalizeStatus($reservation->status), ['activa', 'pendiente de pago'], true)) {
                 $room->update(['status' => 'ocupada']);
+            } else {
+                $room->update(['status' => 'disponible']);
             }
 
             DB::commit();
@@ -91,7 +145,7 @@ class ReservationController extends Controller
             'room_id' => ['sometimes', 'integer', 'exists:rooms,id'],
             'check_in' => ['sometimes', 'date'],
             'check_out' => ['sometimes', 'date'],
-            'status' => ['sometimes', 'in:activa,finalizada,cancelada'],
+            'status' => ['sometimes', 'in:Activa,Pendiente de pago,Finalizada,Cancelada,activa,finalizada,cancelada'],
         ]);
 
         $nextRoomId = $validated['room_id'] ?? $reservation->room_id;
@@ -107,6 +161,14 @@ class ReservationController extends Controller
 
         if ($nextRoomId !== $reservation->room_id && $nextRoom->status !== 'disponible') {
             return response()->json(['error' => 'La nueva habitación no está disponible'], 422);
+        }
+
+        if ($this->hasOverlappingReservation($nextRoomId, $nextCheckIn, $nextCheckOut, $reservation->id)) {
+            return response()->json(['error' => 'La habitación ya tiene una reserva en ese rango de fechas'], 422);
+        }
+
+        if ($this->hasOverlappingActiveReservationForUser(auth('api')->id(), $nextCheckIn, $nextCheckOut, $reservation->id)) {
+            return response()->json(['error' => 'Ya tienes una reserva activa que se cruza con ese rango de fechas'], 422);
         }
 
         $nights = Carbon::parse($nextCheckIn)->diffInDays(Carbon::parse($nextCheckOut));
@@ -129,7 +191,7 @@ class ReservationController extends Controller
                 $previousRoom->update(['status' => 'disponible']);
             }
 
-            if ($nextStatus === 'activa') {
+            if (in_array($this->normalizeStatus($nextStatus), ['activa', 'pendiente de pago'], true)) {
                 $nextRoom->update(['status' => 'ocupada']);
             } else {
                 $nextRoom->update(['status' => 'disponible']);
