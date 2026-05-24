@@ -1,46 +1,146 @@
-import { View, Text, TextInput, Pressable } from 'react-native'
-import React, {useState} from 'react'
-import * as SecureStore from 'expo-secure-store';
+import React, { useState } from 'react'
 
-export default function Login() {
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
+import {
+    View,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    Alert,
+    ActivityIndicator
+} from 'react-native'
 
-    function handleLogin(){
-        const data ={
-            email:email,
-            password:password
+import { useAuth } from '../../context/AuthContext'
+
+export default function Login({ navigation }) {
+
+    const [email, setEmail] = useState('')
+
+    const [password, setPassword] = useState('')
+
+    const [loading, setLoading] = useState(false)
+
+    const { signIn, extractApiError } = useAuth()
+
+    const handleLogin = async () => {
+
+        if (!email.trim() || !password.trim()) {
+            Alert.alert('Error', 'Completa correo y contraseña')
+            return
         }
-        fetch('http://10.158.87.60:8000/api/login', {
-            method:"POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body:JSON.stringify(data)
-        })
-            .then(function(response){
-                return response.json()
-            })
-            .then(function (data){
-                console.log(data)
-                SecureStore.setItemAsync('token',data.access_token)
-            })
 
+        try {
+
+            setLoading(true)
+
+            await signIn(email.trim(), password)
+
+            Alert.alert(
+                'Éxito',
+                'Inicio de sesión correcto'
+            )
+
+        } catch (error) {
+
+            Alert.alert(
+                'Error',
+                extractApiError(error, 'Error al iniciar sesión')
+            )
+        } finally {
+            setLoading(false)
+        }
     }
-  return (
-    <View>
-      <Text>Login</Text>
-      <TextInput placeholder='Ingrese el correo' onChangeText={function(t){
-        setEmail(t)
-      }}></TextInput>
-      <TextInput placeholder='Ingrese la contraseña' onChange={function(t){
-        setPassword(t)
-      }}></TextInput>
-      <Pressable onPress={handleLogin}>
-        <Text>
-            Login
-        </Text>
-      </Pressable>
-    </View>
-  )
+
+    return (
+
+        <View
+            style={{
+                flex: 1,
+                justifyContent: 'center',
+                padding: 20
+            }}
+        >
+
+            <Text
+                style={{
+                    fontSize: 30,
+                    fontWeight: 'bold',
+                    marginBottom: 20
+                }}
+            >
+                Roomix
+            </Text>
+
+            <TextInput
+                placeholder='Correo'
+                value={email}
+                onChangeText={setEmail}
+                style={{
+                    borderWidth: 1,
+                    padding: 15,
+                    borderRadius: 10,
+                    marginBottom: 10
+                }}
+            />
+
+            <TextInput
+                placeholder='Contraseña'
+                secureTextEntry
+                value={password}
+                onChangeText={setPassword}
+                style={{
+                    borderWidth: 1,
+                    padding: 15,
+                    borderRadius: 10,
+                    marginBottom: 20
+                }}
+            />
+
+            <TouchableOpacity
+                onPress={handleLogin}
+                disabled={loading}
+                style={{
+                    backgroundColor: '#007AFF',
+                    padding: 15,
+                    borderRadius: 10,
+                    opacity: loading ? 0.7 : 1
+                }}
+            >
+
+                {
+                    loading ? (
+                        <ActivityIndicator color='white' />
+                    ) : (
+                        <Text
+                            style={{
+                                color: 'white',
+                                textAlign: 'center',
+                                fontWeight: 'bold'
+                            }}
+                        >
+                            Iniciar sesión
+                        </Text>
+                    )
+                }
+
+            </TouchableOpacity>
+
+            <TouchableOpacity
+                onPress={() => navigation.navigate('Register')}
+                style={{
+                    marginTop: 20
+                }}
+            >
+
+                <Text
+                    style={{
+                        textAlign: 'center'
+                    }}
+                >
+                    ¿No tienes cuenta? Regístrate
+                </Text>
+
+            </TouchableOpacity>
+
+        </View>
+    )
 }

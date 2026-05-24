@@ -11,16 +11,21 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\CompanionController;
 use App\Http\Controllers\AuthController;
 
+
+// Rutas usuario común en proyecto móvil
 Route::post('login', [AuthController::class, 'login']);
 Route::post('register', [AuthController::class, 'register']);
 
 Route::middleware('auth:api')->group(function () {
+    Route::get('me', [AuthController::class, 'me']);
     Route::post('logout', [AuthController::class, 'logout']);
     Route::apiResource('companions', CompanionController::class);
     Route::apiResource('reservations', ReservationController::class);
     Route::post('payments', [PaymentController::class, 'store']);
 });
 
+
+// Rutas monolito administrador
 Route::middleware(['auth:api', 'role:admin'])->group(function () {
     Route::get('payments', [PaymentController::class, 'index']);
     Route::get('payments/{id}', [PaymentController::class, 'show']);
