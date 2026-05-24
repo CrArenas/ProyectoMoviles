@@ -15,9 +15,12 @@ return new class extends Migration
 
     public function down(): void
     {
-        DB::statement("UPDATE reservations SET status = 'activa' WHERE status = 'Activa'");
-        DB::statement("UPDATE reservations SET status = 'finalizada' WHERE status = 'Finalizada'");
-        DB::statement("UPDATE reservations SET status = 'cancelada' WHERE status = 'Cancelada'");
+        DB::statement("UPDATE reservations SET status = CASE
+            WHEN LOWER(status) IN ('activa', 'pendiente de pago') THEN 'activa'
+            WHEN LOWER(status) = 'finalizada' THEN 'finalizada'
+            WHEN LOWER(status) = 'cancelada' THEN 'cancelada'
+            ELSE 'activa'
+        END");
         DB::statement("ALTER TABLE reservations MODIFY status ENUM('activa', 'finalizada', 'cancelada') NOT NULL DEFAULT 'activa'");
     }
 };
