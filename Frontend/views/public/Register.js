@@ -83,7 +83,7 @@ export default function Register({ navigation }) {
                 <Text style={styles.kicker}>Roomix móvil</Text>
                 <Text style={styles.heroTitle}>Crea tu cuenta</Text>
                 <Text style={styles.heroText}>
-                    Regístrate con la misma estética del proyecto administrativo para mantener la experiencia visual consistente.
+                    Registrate aquí.
                 </Text>
             </View>
 

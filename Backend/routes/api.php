@@ -12,7 +12,7 @@ use App\Http\Controllers\CompanionController;
 use App\Http\Controllers\AuthController;
 
 
-// Rutas usuario común en proyecto móvil
+// Rutas usuario 
 Route::post('login', [AuthController::class, 'login']);
 Route::post('register', [AuthController::class, 'register']);
 

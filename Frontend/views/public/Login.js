@@ -46,7 +46,7 @@ export default function Login({ navigation }) {
                 </Text>
                 <Text style={styles.heroTitle}>Panel móvil del usuario</Text>
                 <Text style={styles.heroText}>
-                    Inicia sesión para revisar tus reservas, gestionar acompañantes y confirmar pagos con la misma base visual del monolito administrativo.
+                    Inicia sesión para revisar tus reservas, gestionar acompañantes y confirmar pagos.
                 </Text>
             </View>
 
